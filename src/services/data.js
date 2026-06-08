@@ -76,8 +76,10 @@ function mapUserBadge(row) {
   const badge = row.badges;
   return {
     id: row.id,
+    slug: badge?.slug ?? '',
     title: badge?.title ?? '',
     icon: badge?.icon ?? '🏅',
+    description: badge?.description ?? '',
     earnedAt: row.earned_at?.slice(0, 10),
   };
 }
@@ -192,6 +194,31 @@ export async function fetchUserData(userId, email) {
     weeklyPlan: [],
     pathAnalysis: null,
   };
+}
+
+export async function fetchAllBadges() {
+  assertClient();
+
+  const { data, error } = await supabase
+    .from('badges')
+    .select('id, slug, title, description, icon');
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function awardBadgesDb(userId, badgeIds) {
+  assertClient();
+  if (!badgeIds.length) return [];
+
+  const rows = badgeIds.map((badge_id) => ({ user_id: userId, badge_id }));
+  const { data, error } = await supabase
+    .from('user_badges')
+    .insert(rows)
+    .select('*, badges(*)');
+
+  if (error) throw error;
+  return (data ?? []).map(mapUserBadge);
 }
 
 export async function saveGithubSnapshotDb(userId, snapshot) {

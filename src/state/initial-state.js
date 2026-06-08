@@ -5,7 +5,6 @@ import {
   sessions,
   recommendations,
   careerPathSteps,
-  badges,
 } from '../data/mock-data.js';
 
 export function getInitialState() {
@@ -22,7 +21,7 @@ export function getInitialState() {
     sessions: sessions.map((s) => ({ ...s })),
     recommendations: recommendations.map((r) => ({ ...r })),
     careerPathSteps: careerPathSteps.map((s) => ({ ...s })),
-    badges: badges.map((b) => ({ ...b })),
+    badges: [],
     githubSnapshot: null,
     weeklyPlan: [],
     pathAnalysis: null,

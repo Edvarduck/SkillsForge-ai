@@ -1,5 +1,6 @@
 import { getState } from '../state/store.js';
 import { updateProfile, updateCareerGoal, syncGithub } from '../state/actions.js';
+import { BADGE_CATALOG } from '../features/badge-engine.js';
 import { formatDate, escapeHtml } from '../utils/formatters.js';
 import { renderGithubSnapshotCard } from '../utils/github-helpers.js';
 import { showToast } from '../components/toast.js';
@@ -7,21 +8,30 @@ import { showToast } from '../components/toast.js';
 export function renderProfile() {
   const { profile, careerGoal, badges, githubSnapshot } = getState();
 
-  const badgeCards = badges.length
-    ? badges
-        .map(
-          (b) => `
-        <div class="badge-card">
-          <span class="badge-card__icon">${b.icon}</span>
+  const earnedBySlug = Object.fromEntries(
+    badges.filter((b) => b.slug).map((b) => [b.slug, b])
+  );
+
+  const badgeCards = Object.values(BADGE_CATALOG)
+    .map((meta) => {
+      const earned = earnedBySlug[meta.slug];
+      const locked = !earned;
+
+      return `
+        <div class="badge-card${locked ? ' badge-card--locked' : ''}">
+          <span class="badge-card__icon">${meta.icon}</span>
           <div>
-            <strong>${escapeHtml(b.title)}</strong>
-            <span class="text-muted">${formatDate(b.earnedAt)}</span>
+            <strong>${escapeHtml(meta.title)}</strong>
+            <span class="text-muted">${
+              earned
+                ? `Uždirbta ${formatDate(earned.earnedAt)}`
+                : escapeHtml(meta.description)
+            }</span>
           </div>
         </div>
-      `
-        )
-        .join('')
-    : '<p class="text-muted">Ženklelių dar nėra.</p>';
+      `;
+    })
+    .join('');
 
   const githubCard = renderGithubSnapshotCard(githubSnapshot, profile.githubUsername);
 
@@ -86,7 +96,8 @@ export function renderProfile() {
       </div>
 
       <div class="card">
-        <h3>Uždirbti ženkleliai</h3>
+        <h3>Pasiekimai</h3>
+        <p class="text-muted">Ženkleliai skiriami automatiškai už sesijas ir tikslus.</p>
         <div class="badges-grid">${badgeCards}</div>
       </div>
     </section>

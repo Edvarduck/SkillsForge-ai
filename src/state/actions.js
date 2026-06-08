@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from '../services/auth.js';
 import * as data from '../services/data.js';
 import { fetchGithubProfile } from '../services/github.js';
 import { isGithubCacheFresh } from '../utils/github-helpers.js';
+import { checkAndAwardBadges } from './badge-actions.js';
 
 function useCloud() {
   return isSupabaseConfigured && isAuthenticated();
@@ -85,6 +86,7 @@ export async function addSession({ skillId, sessionDate, durationMinutes, notes 
       notes,
     });
     setState((s) => ({ ...s, sessions: [session, ...s.sessions] }));
+    await checkAndAwardBadges();
     return session;
   }
 
@@ -98,6 +100,7 @@ export async function addSession({ skillId, sessionDate, durationMinutes, notes 
   };
 
   setState((s) => ({ ...s, sessions: [session, ...s.sessions] }));
+  await checkAndAwardBadges();
   return session;
 }
 

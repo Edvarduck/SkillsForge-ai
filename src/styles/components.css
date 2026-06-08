@@ -536,6 +536,10 @@
   border-radius: var(--radius-sm);
 }
 
+.badge-card--locked {
+  opacity: 0.55;
+}
+
 .badge-card__icon {
   font-size: 1.5rem;
 }

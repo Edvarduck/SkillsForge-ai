@@ -35,6 +35,8 @@ async function loadUserData(user) {
     const appData = await fetchUserData(user.id, user.email);
     setPersistenceMode(false);
     replaceState(appData);
+    const { checkAndAwardBadges } = await import('./badge-actions.js');
+    await checkAndAwardBadges();
   } catch (err) {
     console.error('Nepavyko įkelti duomenų:', err);
     throw err;
