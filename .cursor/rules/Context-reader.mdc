@@ -1,0 +1,35 @@
+---
+alwaysApply: true
+---
+
+---
+description: Project context check before major work
+alwaysApply: true
+---
+
+# Projekto konteksto patikra
+
+Prieš pradedant naują didesnį darbą, naują funkciją, refaktorizavimą, Supabase integraciją arba tęsiant darbą naujame chat'e:
+
+1. Pirmiausia perskaityk šiuos failus, jei jie egzistuoja:
+   - PROJECT_CONTEXT.md
+   - README.md
+   - SUPABASE_PLAN.md
+   - TODO.md
+   - CHANGELOG.md
+   - .cursorrules arba .cursor/rules/*
+
+2. Prieš keisdamas kodą, trumpai parašyk:
+   - kokia yra dabartinė projekto būsena;
+   - kokios funkcijos jau veikia;
+   - kas dar yra mock / nebaigta;
+   - koks yra vienas logiškiausias sekantis žingsnis.
+
+3. Kol vartotojas aiškiai nepaprašo keisti kodo, kodo nekeisk.
+
+4. Jei trūksta konteksto arba dokumentai prieštarauja vienas kitam, sustok ir pasakyk, ką reikia patikrinti.
+
+5. Po didesnio pakeitimo pasiūlyk atnaujinti:
+   - PROJECT_CONTEXT.md
+   - TODO.md
+   - CHANGELOG.md
