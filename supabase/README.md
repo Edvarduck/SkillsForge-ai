@@ -38,7 +38,15 @@ cp .env.example .env
 
 Užpildyk tikrus URL ir anon key reikšmes `.env` faile.
 
-## 6. Perkrauk dev serverį
+## 6. Auth nustatymai (registracija / prisijungimas)
+
+1. Dashboard → **Authentication** → **Providers** → įjunk **Email**
+2. Development režimui: **Authentication** → **Settings** → išjunk **Confirm email** (arba patvirtink el. paštą po registracijos)
+3. **URL Configuration**:
+   - Site URL: `http://localhost:5173`
+   - Redirect URLs: `http://localhost:5173/**`
+
+## 7. Perkrauk dev serverį
 
 ```bash
 npm run dev

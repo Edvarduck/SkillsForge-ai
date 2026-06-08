@@ -90,12 +90,23 @@ export function renderCareerPath() {
 }
 
 export function bindCareerPath(root) {
-  root.querySelector('#generate-recommendations')?.addEventListener('click', () => {
-    const recs = runRecommendationEngine();
-    if (recs.length) {
-      showToast(`Sugeneruota ${recs.length} rekomendacijos`);
-    } else {
-      showToast('Nepakanka duomenų – pridėk įgūdžių ir sesijų', 'error');
+  root.querySelector('#generate-recommendations')?.addEventListener('click', async () => {
+    const btn = root.querySelector('#generate-recommendations');
+    btn.disabled = true;
+    btn.textContent = 'Generuojama...';
+
+    try {
+      const recs = await runRecommendationEngine();
+      if (recs.length) {
+        showToast(`Sugeneruota ${recs.length} rekomendacijos`);
+      } else {
+        showToast('Nepakanka duomenų – pridėk įgūdžių ir sesijų', 'error');
+      }
+    } catch (err) {
+      showToast(err.message || 'Nepavyko sugeneruoti', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sugeneruoti rekomendacijas';
     }
   });
 }

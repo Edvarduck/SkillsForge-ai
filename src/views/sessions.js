@@ -2,6 +2,10 @@ import { getState } from '../state/store.js';
 import { addSession, deleteSession } from '../state/actions.js';
 import { formatDate, formatMinutes, escapeHtml } from '../utils/formatters.js';
 import { toInputDate } from '../utils/date-helpers.js';
+
+function todayInputDate() {
+  return toInputDate();
+}
 import { showToast } from '../components/toast.js';
 
 export function renderSessions() {
@@ -46,7 +50,7 @@ export function renderSessions() {
             </div>
             <div class="form-group">
               <label for="session-date">Data</label>
-              <input type="date" id="session-date" value="${toInputDate()}" required />
+              <input type="date" id="session-date" value="${todayInputDate()}" required />
             </div>
             <div class="form-group">
               <label for="session-duration">Trukmė (min)</label>
@@ -83,28 +87,44 @@ export function renderSessions() {
 }
 
 export function bindSessions(root) {
-  root.querySelector('#session-form')?.addEventListener('submit', (e) => {
+  const form = root.querySelector('#session-form');
+
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const skillId = root.querySelector('#session-skill').value;
     const sessionDate = root.querySelector('#session-date').value;
     const durationMinutes = root.querySelector('#session-duration').value;
     const notes = root.querySelector('#session-notes').value;
+    const submitBtn = form.querySelector('[type="submit"]');
 
     if (!skillId || !sessionDate || !durationMinutes) {
       showToast('Užpildyk visus privalomus laukus', 'error');
       return;
     }
 
-    addSession({ skillId, sessionDate, durationMinutes, notes });
-    showToast('Sesija išsaugota');
+    submitBtn.disabled = true;
+    try {
+      await addSession({ skillId, sessionDate, durationMinutes, notes });
+      root.querySelector('#session-duration').value = '';
+      root.querySelector('#session-notes').value = '';
+      root.querySelector('#session-date').value = todayInputDate();
+      showToast('Sesija išsaugota');
+    } catch (err) {
+      showToast(err.message || 'Nepavyko išsaugoti', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
   });
 
   root.querySelectorAll('[data-action="delete-session"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (confirm('Ištrinti šią sesiją?')) {
-        deleteSession(btn.dataset.id);
+    btn.addEventListener('click', async () => {
+      if (!confirm('Ištrinti šią sesiją?')) return;
+      try {
+        await deleteSession(btn.dataset.id);
         showToast('Sesija ištrinta');
+      } catch (err) {
+        showToast(err.message || 'Nepavyko ištrinti', 'error');
       }
     });
   });

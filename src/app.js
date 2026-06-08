@@ -1,6 +1,12 @@
 import { renderNavbar, bindNavbar } from './components/navbar.js';
-import { registerRoute, initRouter, getCurrentPath } from './router/router.js';
+import { registerRoute, initRouter, getCurrentPath, navigate } from './router/router.js';
 import { subscribe } from './state/store.js';
+import {
+  isAuthReady,
+  isAuthenticated,
+  isDataLoading,
+  requiresAuth,
+} from './state/auth-state.js';
 import { renderDashboard } from './views/dashboard.js';
 import { renderSkills, bindSkills } from './views/skills.js';
 import { renderSessions, bindSessions } from './views/sessions.js';
@@ -11,6 +17,7 @@ import {
 } from './views/analytics.js';
 import { renderCareerPath, bindCareerPath } from './views/career-path.js';
 import { renderProfile, bindProfile } from './views/profile.js';
+import { renderAuth, bindAuth } from './views/auth.js';
 
 const appRoot = document.getElementById('app');
 
@@ -18,6 +25,7 @@ let currentPath = '/dashboard';
 let currentHandler = null;
 
 const binders = {
+  '/auth': bindAuth,
   '/skills': bindSkills,
   '/sessions': bindSessions,
   '/analytics': mountAnalyticsCharts,
@@ -25,38 +33,68 @@ const binders = {
   '/profile': bindProfile,
 };
 
-function renderShell(content) {
+function renderLoading() {
+  appRoot.innerHTML = `
+    <div class="app-loading">
+      <div class="spinner"></div>
+      <p>Kraunama...</p>
+    </div>
+  `;
+}
+
+function renderShell(content, showNav = true) {
   appRoot.innerHTML = `
     <div class="app-shell">
-      ${renderNavbar()}
+      ${showNav ? renderNavbar() : ''}
       <main class="main-content" id="main-content">
         ${content}
       </main>
     </div>
   `;
-  bindNavbar(appRoot);
+  if (showNav) bindNavbar(appRoot);
 }
 
 function bindCurrentView(path) {
   const main = document.getElementById('main-content');
   if (!main) return;
-
   const binder = binders[path];
   if (binder) binder(main);
 }
 
 function renderCurrentView() {
+  if (!isAuthReady()) {
+    renderLoading();
+    return;
+  }
+
+  if (isDataLoading()) {
+    renderLoading();
+    return;
+  }
+
+  if (requiresAuth() && !isAuthenticated() && currentPath !== '/auth') {
+    navigate('/auth');
+    return;
+  }
+
+  if (isAuthenticated() && currentPath === '/auth') {
+    navigate('/dashboard');
+    return;
+  }
+
   if (!currentHandler) return;
 
   if (currentPath !== '/analytics') {
     unmountAnalyticsCharts();
   }
 
-  renderShell(currentHandler());
+  const showNav = currentPath !== '/auth';
+  renderShell(currentHandler(), showNav);
   bindCurrentView(currentPath);
 }
 
 function setupRoutes() {
+  registerRoute('/auth', () => renderAuth());
   registerRoute('/dashboard', () => renderDashboard());
   registerRoute('/skills', () => renderSkills());
   registerRoute('/sessions', () => renderSessions());
@@ -83,4 +121,10 @@ export function initApp() {
       renderCurrentView();
     }
   });
+
+  window.addEventListener('skillforge:auth-change', () => {
+    renderCurrentView();
+  });
+
+  renderCurrentView();
 }

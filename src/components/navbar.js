@@ -1,4 +1,8 @@
 import { navigate, getCurrentPath } from '../router/router.js';
+import { isAuthenticated, getCurrentUser } from '../state/auth-state.js';
+import { signOut } from '../services/auth.js';
+import { handleSignedOut } from '../state/auth-state.js';
+import { showToast } from './toast.js';
 
 const tabs = [
   { path: '/dashboard', label: 'Dashboard' },
@@ -11,6 +15,8 @@ const tabs = [
 
 export function renderNavbar() {
   const currentPath = getCurrentPath();
+  const user = getCurrentUser();
+  const email = user?.email ?? '';
 
   const navItems = tabs
     .map(
@@ -24,6 +30,15 @@ export function renderNavbar() {
     )
     .join('');
 
+  const userBlock = isAuthenticated()
+    ? `
+      <div class="navbar__user">
+        <span class="navbar__email text-muted">${email}</span>
+        <button type="button" class="btn btn--small btn--secondary" id="logout-btn">Atsijungti</button>
+      </div>
+    `
+    : '';
+
   return `
     <header class="navbar">
       <div class="navbar__brand">
@@ -36,6 +51,7 @@ export function renderNavbar() {
       <nav class="navbar__tabs" aria-label="Pagrindinė navigacija">
         ${navItems}
       </nav>
+      ${userBlock}
     </header>
   `;
 }
@@ -46,5 +62,16 @@ export function bindNavbar(root) {
       e.preventDefault();
       navigate(link.dataset.path);
     });
+  });
+
+  root.querySelector('#logout-btn')?.addEventListener('click', async () => {
+    try {
+      await signOut();
+      handleSignedOut();
+      showToast('Atsijungta');
+      navigate('/auth');
+    } catch (err) {
+      showToast(err.message || 'Nepavyko atsijungti', 'error');
+    }
   });
 }

@@ -133,26 +133,34 @@ export function renderSkills() {
 
 export function bindSkills(root) {
   const form = root.querySelector('#skill-form');
-  form?.addEventListener('submit', (e) => {
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = root.querySelector('#skill-name').value.trim();
     const category = root.querySelector('#skill-category').value;
     const level = root.querySelector('#skill-level').value;
     const status = root.querySelector('#skill-status').value;
     const editId = root.querySelector('#skill-edit-id').value;
+    const submitBtn = form.querySelector('[type="submit"]');
 
     if (!name) {
       showToast('Įvesk įgūdžio pavadinimą', 'error');
       return;
     }
 
-    if (editId) {
-      updateSkill(editId, { name, category, level, status });
-      editingId = null;
-      showToast('Įgūdis atnaujintas');
-    } else {
-      addSkill({ name, category, level, status });
-      showToast('Įgūdis pridėtas');
+    submitBtn.disabled = true;
+    try {
+      if (editId) {
+        await updateSkill(editId, { name, category, level, status });
+        editingId = null;
+        showToast('Įgūdis atnaujintas');
+      } else {
+        await addSkill({ name, category, level, status });
+        showToast('Įgūdis pridėtas');
+      }
+    } catch (err) {
+      showToast(err.message || 'Nepavyko išsaugoti', 'error');
+    } finally {
+      submitBtn.disabled = false;
     }
   });
 
@@ -179,11 +187,14 @@ export function bindSkills(root) {
   });
 
   root.querySelectorAll('[data-action="delete"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (confirm('Ištrinti įgūdį ir susijusias sesijas?')) {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Ištrinti įgūdį ir susijusias sesijas?')) return;
+      try {
         if (editingId === btn.dataset.id) editingId = null;
-        deleteSkill(btn.dataset.id);
+        await deleteSkill(btn.dataset.id);
         showToast('Įgūdis ištrintas');
+      } catch (err) {
+        showToast(err.message || 'Nepavyko ištrinti', 'error');
       }
     });
   });

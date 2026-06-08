@@ -85,29 +85,53 @@ export function renderProfile() {
 }
 
 export function bindProfile(root) {
-  root.querySelector('#profile-form')?.addEventListener('submit', (e) => {
+  root.querySelector('#profile-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    updateProfile({
-      displayName: root.querySelector('#display-name').value.trim(),
-      weeklyHoursGoal: Number(root.querySelector('#weekly-goal').value),
-    });
-    showToast('Profilis išsaugotas');
+    const btn = e.target.querySelector('[type="submit"]');
+    btn.disabled = true;
+    try {
+      await updateProfile({
+        displayName: root.querySelector('#display-name').value.trim(),
+        weeklyHoursGoal: Number(root.querySelector('#weekly-goal').value),
+      });
+      showToast('Profilis išsaugotas');
+    } catch (err) {
+      showToast(err.message || 'Nepavyko išsaugoti', 'error');
+    } finally {
+      btn.disabled = false;
+    }
   });
 
-  root.querySelector('#career-goal-form')?.addEventListener('submit', (e) => {
+  root.querySelector('#career-goal-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    updateCareerGoal({
-      title: root.querySelector('#career-goal-title').value.trim(),
-      targetDate: root.querySelector('#career-goal-date').value,
-    });
-    showToast('Karjeros tikslas atnaujintas');
+    const btn = e.target.querySelector('[type="submit"]');
+    btn.disabled = true;
+    try {
+      await updateCareerGoal({
+        title: root.querySelector('#career-goal-title').value.trim(),
+        targetDate: root.querySelector('#career-goal-date').value,
+      });
+      showToast('Karjeros tikslas atnaujintas');
+    } catch (err) {
+      showToast(err.message || 'Nepavyko išsaugoti', 'error');
+    } finally {
+      btn.disabled = false;
+    }
   });
 
-  root.querySelector('#github-form')?.addEventListener('submit', (e) => {
+  root.querySelector('#github-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    updateProfile({
-      githubUsername: root.querySelector('#github-username').value.trim(),
-    });
-    showToast('GitHub vardas išsaugotas');
+    const btn = e.target.querySelector('[type="submit"]');
+    btn.disabled = true;
+    try {
+      await updateProfile({
+        githubUsername: root.querySelector('#github-username').value.trim(),
+      });
+      showToast('GitHub vardas išsaugotas');
+    } catch (err) {
+      showToast(err.message || 'Nepavyko išsaugoti', 'error');
+    } finally {
+      btn.disabled = false;
+    }
   });
 }

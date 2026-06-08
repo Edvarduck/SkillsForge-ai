@@ -4,6 +4,7 @@ const STORAGE_KEY = 'skillforge-ai-state';
 
 let state = loadFromStorage();
 const listeners = new Set();
+let useLocalPersistence = true;
 
 function loadFromStorage() {
   try {
@@ -15,9 +16,19 @@ function loadFromStorage() {
   return getInitialState();
 }
 
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function notify() {
   listeners.forEach((fn) => fn(state));
+}
+
+function persist() {
+  if (useLocalPersistence) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+  notify();
+}
+
+export function setPersistenceMode(local) {
+  useLocalPersistence = local;
 }
 
 export function getState() {
@@ -27,6 +38,11 @@ export function getState() {
 export function setState(updater) {
   const next = typeof updater === 'function' ? updater(state) : updater;
   state = next;
+  persist();
+}
+
+export function replaceState(newState) {
+  state = newState;
   persist();
 }
 
