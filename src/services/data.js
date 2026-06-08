@@ -82,6 +82,19 @@ function mapUserBadge(row) {
   };
 }
 
+function mapGithubSnapshot(row) {
+  if (!row) return null;
+  const topRepos = row.top_repos_json ?? [];
+  return {
+    id: row.id,
+    reposCount: row.repos_count ?? 0,
+    fetchedReposCount: topRepos.length,
+    languages: row.languages_json ?? {},
+    topRepos,
+    fetchedAt: row.fetched_at,
+  };
+}
+
 async function seedDefaultCareerGoal(userId) {
   const template = getInitialState().careerGoal;
 
@@ -122,6 +135,7 @@ export async function fetchUserData(userId, email) {
     sessionsRes,
     userBadgesRes,
     recommendationsRes,
+    githubRes,
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).single(),
     supabase.from('career_goals').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
@@ -129,6 +143,7 @@ export async function fetchUserData(userId, email) {
     supabase.from('learning_sessions').select('*').eq('user_id', userId).order('session_date', { ascending: false }),
     supabase.from('user_badges').select('*, badges(*)').eq('user_id', userId).order('earned_at', { ascending: false }),
     supabase.from('recommendations').select('*').eq('user_id', userId).eq('is_dismissed', false).order('priority_score', { ascending: false }),
+    supabase.from('github_snapshots').select('*').eq('user_id', userId).order('fetched_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -173,7 +188,26 @@ export async function fetchUserData(userId, email) {
     recommendations,
     careerPathSteps,
     badges,
+    githubSnapshot: mapGithubSnapshot(githubRes.data),
   };
+}
+
+export async function saveGithubSnapshotDb(userId, snapshot) {
+  assertClient();
+
+  const { data, error } = await supabase
+    .from('github_snapshots')
+    .insert({
+      user_id: userId,
+      languages_json: snapshot.languages,
+      repos_count: snapshot.reposCount,
+      top_repos_json: snapshot.topRepos,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapGithubSnapshot(data);
 }
 
 export async function updateProfileDb(userId, { displayName, weeklyHoursGoal, githubUsername }) {

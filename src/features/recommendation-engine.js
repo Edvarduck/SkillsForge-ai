@@ -10,7 +10,16 @@ function toPriority(score) {
   return PRIORITY_LABELS.find(([min]) => score >= min)[1];
 }
 
-export function generateRecommendations(skills, sessions, careerGoal) {
+const GITHUB_SKILL_MAP = {
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  css: 'CSS',
+  html: 'HTML',
+  python: 'Python',
+  react: 'React',
+};
+
+export function generateRecommendations(skills, sessions, careerGoal, githubSnapshot = null) {
   const recs = [];
   const sessionsBySkill = {};
 
@@ -69,6 +78,10 @@ export function generateRecommendations(skills, sessions, careerGoal) {
     }
   });
 
+  if (githubSnapshot?.languages) {
+    recs.push(...getGithubRecommendations(skills, githubSnapshot.languages));
+  }
+
   return recs
     .sort((a, b) => b.score - a.score)
     .slice(0, 6)
@@ -83,6 +96,46 @@ export function generateCareerPathSteps(recommendations) {
     reason: rec.reason,
     status: index === 0 ? 'current' : 'upcoming',
   }));
+}
+
+function getGithubRecommendations(skills, languages) {
+  const recs = [];
+  const seen = new Set();
+
+  skills.forEach((skill) => {
+    const langKey = Object.entries(GITHUB_SKILL_MAP).find(
+      ([, name]) => name.toLowerCase() === skill.name.toLowerCase()
+    )?.[1];
+
+    const repoCount = langKey ? (languages[langKey] ?? 0) : 0;
+
+    if (skill.level >= 2 && repoCount === 0) {
+      const id = `rec-github-${skill.id}`;
+      if (!seen.has(id)) {
+        seen.add(id);
+        recs.push({
+          id,
+          skillName: skill.name,
+          reason: `Moki ${skill.name}, bet GitHub nerodo aktyvių ${skill.name} repozitorijų – praktikuok projektuose`,
+          priority: 'Aukštas',
+          score: 82,
+        });
+      }
+    }
+  });
+
+  const totalRepos = Object.values(languages).reduce((sum, n) => sum + n, 0);
+  if (totalRepos === 0) {
+    recs.push({
+      id: 'rec-github-activity',
+      skillName: 'GitHub aktyvumas',
+      reason: 'GitHub repozitorijose nėra kalbų duomenų – sukurk arba atnaujink viešus projektus',
+      priority: 'Vidutinis',
+      score: 68,
+    });
+  }
+
+  return recs;
 }
 
 function getSuggestedSkillsForGoal(goalTitle) {

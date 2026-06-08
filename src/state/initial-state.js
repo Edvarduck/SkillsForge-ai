@@ -23,5 +23,6 @@ export function getInitialState() {
     recommendations: recommendations.map((r) => ({ ...r })),
     careerPathSteps: careerPathSteps.map((s) => ({ ...s })),
     badges: badges.map((b) => ({ ...b })),
+    githubSnapshot: null,
   };
 }

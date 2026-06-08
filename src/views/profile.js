@@ -1,14 +1,16 @@
 import { getState } from '../state/store.js';
-import { updateProfile, updateCareerGoal } from '../state/actions.js';
+import { updateProfile, updateCareerGoal, syncGithub } from '../state/actions.js';
 import { formatDate, escapeHtml } from '../utils/formatters.js';
+import { renderGithubSnapshotCard } from '../utils/github-helpers.js';
 import { showToast } from '../components/toast.js';
 
 export function renderProfile() {
-  const { profile, careerGoal, badges } = getState();
+  const { profile, careerGoal, badges, githubSnapshot } = getState();
 
-  const badgeCards = badges
-    .map(
-      (b) => `
+  const badgeCards = badges.length
+    ? badges
+        .map(
+          (b) => `
         <div class="badge-card">
           <span class="badge-card__icon">${b.icon}</span>
           <div>
@@ -17,8 +19,11 @@ export function renderProfile() {
           </div>
         </div>
       `
-    )
-    .join('');
+        )
+        .join('')
+    : '<p class="text-muted">Ženklelių dar nėra.</p>';
+
+  const githubCard = renderGithubSnapshotCard(githubSnapshot, profile.githubUsername);
 
   return `
     <section class="view">
@@ -66,14 +71,18 @@ export function renderProfile() {
 
       <div class="card">
         <h3>GitHub</h3>
-        <p class="text-muted">Vėliau – vieši API endpoint'ai be token</p>
+        <p class="text-muted">Vieši API endpoint'ai be token</p>
         <form class="form form--inline" id="github-form">
           <div class="form-group">
             <label for="github-username">GitHub vartotojo vardas</label>
             <input type="text" id="github-username" value="${escapeHtml(profile.githubUsername)}" placeholder="username" />
           </div>
-          <button type="submit" class="btn btn--secondary">Išsaugoti GitHub</button>
+          <button type="submit" class="btn btn--secondary">Išsaugoti vardą</button>
+          <button type="button" class="btn btn--primary" id="github-sync-btn">Sinchronizuoti</button>
         </form>
+        <div class="github-snapshot" id="github-snapshot">
+          ${githubCard}
+        </div>
       </div>
 
       <div class="card">
@@ -132,6 +141,30 @@ export function bindProfile(root) {
       showToast(err.message || 'Nepavyko išsaugoti', 'error');
     } finally {
       btn.disabled = false;
+    }
+  });
+
+  root.querySelector('#github-sync-btn')?.addEventListener('click', async () => {
+    const btn = root.querySelector('#github-sync-btn');
+    const username = root.querySelector('#github-username').value.trim();
+
+    if (!username) {
+      showToast('Įvesk GitHub vartotojo vardą', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Sinchronizuojama...';
+
+    try {
+      await updateProfile({ githubUsername: username });
+      await syncGithub({ force: true });
+      showToast('GitHub duomenys sinchronizuoti');
+    } catch (err) {
+      showToast(err.message || 'GitHub sinchronizacijos klaida', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sinchronizuoti';
     }
   });
 }

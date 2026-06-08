@@ -1,9 +1,10 @@
 import { getState } from '../state/store.js';
 import { getDashboardSummary } from '../state/selectors.js';
 import { formatDate, formatMinutes, escapeHtml } from '../utils/formatters.js';
+import { renderGithubDashboardSummary } from '../utils/github-helpers.js';
 
 export function renderDashboard() {
-  const { sessions, recommendations, careerGoal } = getState();
+  const { sessions, recommendations, careerGoal, profile, githubSnapshot } = getState();
   const summary = getDashboardSummary();
 
   const recentSessions = [...sessions]
@@ -73,6 +74,11 @@ export function renderDashboard() {
           <span class="stat-card__label">Streak</span>
           <span class="stat-card__value">${summary.streakDays} d.</span>
         </div>
+      </div>
+
+      <div class="card">
+        <h3>GitHub aktyvumas</h3>
+        ${renderGithubDashboardSummary(githubSnapshot, profile.githubUsername)}
       </div>
 
       <div class="card card--highlight">

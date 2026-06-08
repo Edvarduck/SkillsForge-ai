@@ -5,6 +5,8 @@ import { computeGoalProgress } from './selectors.js';
 import { isAuthenticated, getCurrentUser } from './auth-state.js';
 import { isSupabaseConfigured } from '../services/auth.js';
 import * as data from '../services/data.js';
+import { fetchGithubProfile } from '../services/github.js';
+import { isGithubCacheFresh } from '../utils/github-helpers.js';
 
 function useCloud() {
   return isSupabaseConfigured && isAuthenticated();
@@ -135,9 +137,43 @@ export async function updateCareerGoal(updates) {
   });
 }
 
+export async function syncGithub({ force = false } = {}) {
+  const { profile, githubSnapshot } = getState();
+  const username = profile.githubUsername?.trim();
+
+  if (!username) {
+    throw new Error('Įvesk GitHub vartotojo vardą profilyje');
+  }
+
+  if (!force && isGithubCacheFresh(githubSnapshot?.fetchedAt)) {
+    throw new Error('GitHub duomenys atnaujinti prieš mažiau nei 1 val. – bandyk vėliau');
+  }
+
+  const githubData = await fetchGithubProfile(username);
+  let snapshot = {
+    reposCount: githubData.reposCount,
+    fetchedReposCount: githubData.fetchedReposCount,
+    languages: githubData.languages,
+    topRepos: githubData.topRepos,
+    fetchedAt: new Date().toISOString(),
+  };
+
+  if (useCloud()) {
+    const user = getCurrentUser();
+    snapshot = await data.saveGithubSnapshotDb(user.id, snapshot);
+  }
+
+  if (githubData.username && githubData.username !== profile.githubUsername) {
+    await updateProfile({ githubUsername: githubData.username });
+  }
+
+  setState((s) => ({ ...s, githubSnapshot: snapshot }));
+  return snapshot;
+}
+
 export async function runRecommendationEngine() {
-  const { skills, sessions, careerGoal } = getState();
-  const generated = generateRecommendations(skills, sessions, careerGoal);
+  const { skills, sessions, careerGoal, githubSnapshot } = getState();
+  const generated = generateRecommendations(skills, sessions, careerGoal, githubSnapshot);
   const careerPathSteps = generateCareerPathSteps(generated);
 
   if (useCloud()) {

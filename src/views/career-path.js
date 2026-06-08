@@ -1,10 +1,11 @@
 import { getState } from '../state/store.js';
 import { runRecommendationEngine } from '../state/actions.js';
 import { formatDate, escapeHtml } from '../utils/formatters.js';
+import { formatGithubLanguages, renderGithubSnapshotCard } from '../utils/github-helpers.js';
 import { showToast } from '../components/toast.js';
 
 export function renderCareerPath() {
-  const { careerGoal, careerPathSteps, recommendations } = getState();
+  const { careerGoal, careerPathSteps, recommendations, profile, githubSnapshot } = getState();
 
   const milestones = careerGoal.milestones
     .map(
@@ -79,6 +80,17 @@ export function renderCareerPath() {
           <h3>Rekomenduojamas kelias</h3>
           <div class="path-timeline">${pathSteps}</div>
         </div>
+      </div>
+
+      <div class="card">
+        <h3>GitHub įžvalgos</h3>
+        ${githubSnapshot
+          ? `
+            <p class="text-muted">Kalbų pasiskirstymas repozitorijose:</p>
+            <p>${formatGithubLanguages(githubSnapshot.languages)}</p>
+            <p class="text-muted">Sugeneruojant rekomendacijas, lyginama su tavo GitHub aktyvumu.</p>
+          `
+          : renderGithubSnapshotCard(null, profile.githubUsername)}
       </div>
 
       <div class="card">
