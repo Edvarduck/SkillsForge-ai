@@ -50,8 +50,8 @@
 - [x] UX polish (skeleton loaders, empty states, retry klaidoms)
 
 ### Dar nebaigta
-- [ ] Milestone'ų redagavimas UI (tik rodomi, ne redaguojami)
-- [ ] `weeklyPlan` / `pathAnalysis` persist į DB (dabar tik aplikacijos state)
+- [x] Milestone'ų redagavimas UI (pridėti, redaguoti, pažymėti, ištrinti)
+- [x] `weeklyPlan` / `pathAnalysis` persist į DB (`path_engine_cache` – reikia `003_path_cache.sql`)
 - [ ] Naujausios versijos auto-deploy per GitHub → Vercel (reikia patikrinti ar sujungta)
 
 **Pastaba:** [`ARCHITECTURE_PLAN.md`](ARCHITECTURE_PLAN.md) progreso checklist dalinai pasenęs – šis failas tikslesnis.
@@ -245,7 +245,7 @@ npx vercel deploy --prod --scope edvard-s-projects2
 
 ## DB lentelės (Supabase)
 
-`profiles` · `career_goals` · `milestones` · `skills` · `learning_sessions` · `badges` · `user_badges` · `github_snapshots` · `recommendations`
+`profiles` · `career_goals` · `milestones` · `skills` · `learning_sessions` · `badges` · `user_badges` · `github_snapshots` · `recommendations` · `path_engine_cache`
 
 ---
 

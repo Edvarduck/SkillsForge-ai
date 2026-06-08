@@ -84,6 +84,29 @@ function mapUserBadge(row) {
   };
 }
 
+function mapMilestone(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    isCompleted: row.is_completed,
+  };
+}
+
+function mapPathCache(row) {
+  if (!row) {
+    return { weeklyPlan: [], pathAnalysis: null, careerPathSteps: null };
+  }
+
+  const steps = row.career_path_steps_json ?? [];
+  const analysis = row.path_analysis_json ?? [];
+
+  return {
+    weeklyPlan: row.weekly_plan_json ?? [],
+    pathAnalysis: analysis.length ? analysis : null,
+    careerPathSteps: steps.length ? steps : null,
+  };
+}
+
 function mapGithubSnapshot(row) {
   if (!row) return null;
   const topRepos = row.top_repos_json ?? [];
@@ -138,6 +161,7 @@ export async function fetchUserData(userId, email) {
     userBadgesRes,
     recommendationsRes,
     githubRes,
+    pathCacheRes,
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).single(),
     supabase.from('career_goals').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
@@ -146,6 +170,7 @@ export async function fetchUserData(userId, email) {
     supabase.from('user_badges').select('*, badges(*)').eq('user_id', userId).order('earned_at', { ascending: false }),
     supabase.from('recommendations').select('*').eq('user_id', userId).eq('is_dismissed', false).order('priority_score', { ascending: false }),
     supabase.from('github_snapshots').select('*').eq('user_id', userId).order('fetched_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('path_engine_cache').select('*').eq('user_id', userId).maybeSingle(),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -179,7 +204,9 @@ export async function fetchUserData(userId, email) {
   );
 
   const recommendations = (recommendationsRes.data ?? []).map(mapRecommendation);
-  const careerPathSteps = generateCareerPathSteps(recommendations);
+  const pathCache = pathCacheRes.error ? mapPathCache(null) : mapPathCache(pathCacheRes.data);
+  const careerPathSteps =
+    pathCache.careerPathSteps ?? generateCareerPathSteps(recommendations);
   const badges = (userBadgesRes.data ?? []).map(mapUserBadge);
 
   return {
@@ -191,8 +218,8 @@ export async function fetchUserData(userId, email) {
     careerPathSteps,
     badges,
     githubSnapshot: mapGithubSnapshot(githubRes.data),
-    weeklyPlan: [],
-    pathAnalysis: null,
+    weeklyPlan: pathCache.weeklyPlan,
+    pathAnalysis: pathCache.pathAnalysis,
   };
 }
 
@@ -251,14 +278,77 @@ export async function updateProfileDb(userId, { displayName, weeklyHoursGoal, gi
   if (error) throw error;
 }
 
-export async function updateCareerGoalDb(goalId, { title, targetDate }) {
+export async function updateCareerGoalDb(goalId, { title, targetDate, progressPercent }) {
   assertClient();
 
   const updates = {};
   if (title !== undefined) updates.title = title;
   if (targetDate !== undefined) updates.target_date = targetDate;
+  if (progressPercent !== undefined) updates.progress_percent = progressPercent;
 
   const { error } = await supabase.from('career_goals').update(updates).eq('id', goalId);
+  if (error) throw error;
+}
+
+export async function createMilestoneDb(goalId, { title, orderIndex }) {
+  assertClient();
+
+  const { data, error } = await supabase
+    .from('milestones')
+    .insert({
+      goal_id: goalId,
+      title,
+      order_index: orderIndex,
+      is_completed: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapMilestone(data);
+}
+
+export async function updateMilestoneDb(id, { title, isCompleted }) {
+  assertClient();
+
+  const row = {};
+  if (title !== undefined) row.title = title;
+  if (isCompleted !== undefined) {
+    row.is_completed = isCompleted;
+    row.completed_at = isCompleted ? new Date().toISOString() : null;
+  }
+
+  const { data, error } = await supabase
+    .from('milestones')
+    .update(row)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapMilestone(data);
+}
+
+export async function deleteMilestoneDb(id) {
+  assertClient();
+  const { error } = await supabase.from('milestones').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function savePathCacheDb(userId, { weeklyPlan, pathAnalysis, careerPathSteps }) {
+  assertClient();
+
+  const { error } = await supabase.from('path_engine_cache').upsert(
+    {
+      user_id: userId,
+      weekly_plan_json: weeklyPlan,
+      path_analysis_json: pathAnalysis ?? [],
+      career_path_steps_json: careerPathSteps,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' }
+  );
+
   if (error) throw error;
 }
 

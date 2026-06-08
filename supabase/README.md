@@ -15,11 +15,12 @@
 5. Turėtum matyti „Success. No rows returned“
 
 > Jei `001` jau paleistas anksčiau be GRANT dalių, paleisk ir `002_grant_permissions.sql`.
+> Po path engine atnaujinimo paleisk ir `003_path_cache.sql` (savaitės plano saugojimui).
 
 ## 3. Patikrink lenteles
 
 1. Dashboard → **Table Editor**
-2. Turėtum matyti lenteles: `profiles`, `career_goals`, `milestones`, `skills`, `learning_sessions`, `badges`, `user_badges`, `github_snapshots`, `recommendations`
+2. Turėtum matyti lenteles: `profiles`, `career_goals`, `milestones`, `skills`, `learning_sessions`, `badges`, `user_badges`, `github_snapshots`, `recommendations`, `path_engine_cache`
 3. `badges` lentelėje turėtų būti 4 pradiniai ženkleliai
 
 ## 4. Gauk API raktus

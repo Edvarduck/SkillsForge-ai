@@ -1,11 +1,18 @@
 import { getState } from '../state/store.js';
-import { runPathEngineAction } from '../state/actions.js';
+import {
+  runPathEngineAction,
+  toggleMilestone,
+  updateMilestone,
+  addMilestone,
+  deleteMilestone,
+} from '../state/actions.js';
 import { formatDate, escapeHtml } from '../utils/formatters.js';
 import { formatGithubLanguages, renderGithubSnapshotCard } from '../utils/github-helpers.js';
 import { showToast } from '../components/toast.js';
 import { renderEmptyState } from '../components/ui-states.js';
 
 let pathEngineError = null;
+let editingMilestoneId = null;
 
 function renderPathSteps(steps) {
   if (!steps.length) {
@@ -100,16 +107,59 @@ export function renderCareerPath() {
     pathAnalysis,
   } = getState();
 
-  const milestones = careerGoal.milestones
-    .map(
-      (m) => `
-        <li class="milestone ${m.isCompleted ? 'milestone--done' : ''}">
-          <span class="milestone__check">${m.isCompleted ? '✓' : '○'}</span>
-          <span>${escapeHtml(m.title)}</span>
-        </li>
-      `
-    )
-    .join('');
+  let milestoneListBlock;
+
+  if (!careerGoal.milestones.length) {
+    milestoneListBlock = renderEmptyState({
+      icon: '🏁',
+      title: 'Milestone\'ų dar nėra',
+      description: 'Pridėk žingsnius link savo karjeros tikslo.',
+    });
+  } else {
+    const milestoneItems = careerGoal.milestones
+        .map((m) => {
+          const isEditing = editingMilestoneId === m.id;
+
+          if (isEditing) {
+            return `
+              <li class="milestone milestone--editing" data-milestone-id="${m.id}">
+                <input
+                  type="text"
+                  class="milestone__input"
+                  id="milestone-edit-input"
+                  value="${escapeHtml(m.title)}"
+                  maxlength="200"
+                  required
+                />
+                <div class="milestone__actions">
+                  <button type="button" class="btn btn--small btn--primary" data-action="save-milestone" data-id="${m.id}">Išsaugoti</button>
+                  <button type="button" class="btn btn--small btn--secondary" data-action="cancel-milestone">Atšaukti</button>
+                </div>
+              </li>
+            `;
+          }
+
+          return `
+            <li class="milestone ${m.isCompleted ? 'milestone--done' : ''}" data-milestone-id="${m.id}">
+              <button
+                type="button"
+                class="milestone__toggle"
+                data-action="toggle-milestone"
+                data-id="${m.id}"
+                aria-label="${m.isCompleted ? 'Atžymėti' : 'Pažymėti'} kaip atliktą"
+              >${m.isCompleted ? '✓' : '○'}</button>
+              <span class="milestone__title">${escapeHtml(m.title)}</span>
+              <div class="milestone__actions">
+                <button type="button" class="btn btn--small btn--secondary" data-action="edit-milestone" data-id="${m.id}">Redaguoti</button>
+                <button type="button" class="btn btn--small btn--danger" data-action="delete-milestone" data-id="${m.id}">Ištrinti</button>
+              </div>
+            </li>
+          `;
+        })
+        .join('');
+
+    milestoneListBlock = `<ul class="milestone-list">${milestoneItems}</ul>`;
+  }
 
   const recList = recommendations.length
     ? recommendations
@@ -171,7 +221,15 @@ export function renderCareerPath() {
       <div class="grid-2">
         <div class="card">
           <h3>Milestone'ai</h3>
-          <ul class="milestone-list">${milestones}</ul>
+          <p class="text-muted">Pažymėk atliktus, redaguok ar pridėk naujus žingsnius.</p>
+          ${milestoneListBlock}
+          <form class="form form--inline milestone-form" id="milestone-form">
+            <div class="form-group milestone-form__field">
+              <label for="milestone-title">Naujas milestone</label>
+              <input type="text" id="milestone-title" placeholder="pvz. Portfolio projektas" maxlength="200" required />
+            </div>
+            <button type="submit" class="btn btn--primary btn--small">Pridėti</button>
+          </form>
         </div>
         <div class="card">
           <h3>Rekomenduojamas kelias</h3>
@@ -243,5 +301,89 @@ export function bindCareerPath(root) {
   generateBtn?.addEventListener('click', () => runPathGeneration(generateBtn));
   root.querySelector('#retry-path-engine')?.addEventListener('click', () => {
     if (generateBtn) runPathGeneration(generateBtn);
+  });
+
+  root.querySelector('#milestone-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = root.querySelector('#milestone-title');
+    const btn = e.target.querySelector('[type="submit"]');
+    btn.disabled = true;
+
+    try {
+      await addMilestone({ title: input.value });
+      input.value = '';
+      showToast('Milestone pridėtas');
+    } catch (err) {
+      showToast(err.message || 'Nepavyko pridėti', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  root.querySelectorAll('[data-action="toggle-milestone"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await toggleMilestone(btn.dataset.id);
+      } catch (err) {
+        showToast(err.message || 'Nepavyko atnaujinti', 'error');
+      }
+    });
+  });
+
+  root.querySelectorAll('[data-action="edit-milestone"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingMilestoneId = btn.dataset.id;
+      window.dispatchEvent(new CustomEvent('skillforge:rerender'));
+    });
+  });
+
+  root.querySelectorAll('[data-action="cancel-milestone"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingMilestoneId = null;
+      window.dispatchEvent(new CustomEvent('skillforge:rerender'));
+    });
+  });
+
+  root.querySelectorAll('[data-action="save-milestone"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const input = root.querySelector('#milestone-edit-input');
+      if (!input) return;
+
+      btn.disabled = true;
+      try {
+        await updateMilestone(btn.dataset.id, { title: input.value });
+        editingMilestoneId = null;
+        showToast('Milestone atnaujintas');
+      } catch (err) {
+        showToast(err.message || 'Nepavyko išsaugoti', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  root.querySelectorAll('[data-action="delete-milestone"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Ištrinti šį milestone?')) return;
+
+      try {
+        if (editingMilestoneId === btn.dataset.id) editingMilestoneId = null;
+        await deleteMilestone(btn.dataset.id);
+        showToast('Milestone ištrintas');
+      } catch (err) {
+        showToast(err.message || 'Nepavyko ištrinti', 'error');
+      }
+    });
+  });
+
+  root.querySelector('#milestone-edit-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      root.querySelector('[data-action="save-milestone"]')?.click();
+    }
+    if (e.key === 'Escape') {
+      editingMilestoneId = null;
+      window.dispatchEvent(new CustomEvent('skillforge:rerender'));
+    }
   });
 }

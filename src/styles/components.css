@@ -470,6 +470,68 @@
   font-size: 0.875rem;
 }
 
+.milestone--editing {
+  flex-wrap: wrap;
+}
+
+.milestone__toggle {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.milestone__toggle:hover {
+  background: var(--color-surface);
+  color: var(--color-primary);
+}
+
+.milestone--done .milestone__toggle {
+  color: var(--color-success);
+}
+
+.milestone__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.milestone__input {
+  flex: 1;
+  min-width: 10rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.milestone__actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.milestone-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  align-items: flex-end;
+}
+
+.milestone-form__field {
+  flex: 1;
+  min-width: 12rem;
+}
+
 .milestone--done {
   opacity: 0.7;
 }

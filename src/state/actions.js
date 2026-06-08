@@ -140,6 +140,112 @@ export async function updateCareerGoal(updates) {
   });
 }
 
+function setMilestonesState(milestones) {
+  const progressPercent = computeGoalProgress(milestones);
+
+  setState((s) => ({
+    ...s,
+    careerGoal: {
+      ...s.careerGoal,
+      milestones,
+      progressPercent,
+    },
+  }));
+
+  return progressPercent;
+}
+
+export async function toggleMilestone(id) {
+  const { careerGoal } = getState();
+  const milestone = careerGoal.milestones.find((m) => m.id === id);
+  if (!milestone) return;
+
+  const isCompleted = !milestone.isCompleted;
+
+  if (useCloud()) {
+    const updated = await data.updateMilestoneDb(id, { isCompleted });
+    const milestones = careerGoal.milestones.map((m) => (m.id === id ? updated : m));
+    const progressPercent = setMilestonesState(milestones);
+    await data.updateCareerGoalDb(careerGoal.id, { progressPercent });
+    return;
+  }
+
+  const milestones = careerGoal.milestones.map((m) =>
+    m.id === id ? { ...m, isCompleted } : m
+  );
+  setMilestonesState(milestones);
+}
+
+export async function updateMilestone(id, { title }) {
+  const trimmed = title.trim();
+  if (!trimmed) throw new Error('Milestone pavadinimas negali būti tuščias');
+
+  if (useCloud()) {
+    const updated = await data.updateMilestoneDb(id, { title: trimmed });
+    setState((s) => ({
+      ...s,
+      careerGoal: {
+        ...s.careerGoal,
+        milestones: s.careerGoal.milestones.map((m) => (m.id === id ? updated : m)),
+      },
+    }));
+    return;
+  }
+
+  setState((s) => ({
+    ...s,
+    careerGoal: {
+      ...s.careerGoal,
+      milestones: s.careerGoal.milestones.map((m) =>
+        m.id === id ? { ...m, title: trimmed } : m
+      ),
+    },
+  }));
+}
+
+export async function addMilestone({ title }) {
+  const trimmed = title.trim();
+  if (!trimmed) throw new Error('Įvesk milestone pavadinimą');
+
+  const { careerGoal } = getState();
+  const orderIndex = careerGoal.milestones.length;
+
+  if (useCloud()) {
+    const created = await data.createMilestoneDb(careerGoal.id, {
+      title: trimmed,
+      orderIndex,
+    });
+    const milestones = [...careerGoal.milestones, created];
+    const progressPercent = setMilestonesState(milestones);
+    await data.updateCareerGoalDb(careerGoal.id, { progressPercent });
+    return created;
+  }
+
+  const milestone = {
+    id: createId('ms'),
+    title: trimmed,
+    isCompleted: false,
+  };
+
+  setMilestonesState([...careerGoal.milestones, milestone]);
+  return milestone;
+}
+
+export async function deleteMilestone(id) {
+  const { careerGoal } = getState();
+
+  if (useCloud()) {
+    await data.deleteMilestoneDb(id);
+    const milestones = careerGoal.milestones.filter((m) => m.id !== id);
+    const progressPercent = setMilestonesState(milestones);
+    await data.updateCareerGoalDb(careerGoal.id, { progressPercent });
+    return;
+  }
+
+  const milestones = careerGoal.milestones.filter((m) => m.id !== id);
+  setMilestonesState(milestones);
+}
+
 export async function syncGithub({ force = false } = {}) {
   const { profile, githubSnapshot } = getState();
   const username = profile.githubUsername?.trim();
@@ -190,6 +296,15 @@ export async function runPathEngineAction() {
   if (useCloud()) {
     const user = getCurrentUser();
     const saved = await data.replaceRecommendationsDb(user.id, recommendations);
+    try {
+      await data.savePathCacheDb(user.id, {
+        weeklyPlan,
+        pathAnalysis: analysisSteps,
+        careerPathSteps,
+      });
+    } catch (err) {
+      console.warn('Path cache nepavyko išsaugoti (ar paleistas 003_path_cache.sql?):', err);
+    }
     setState((s) => ({
       ...s,
       recommendations: saved,
