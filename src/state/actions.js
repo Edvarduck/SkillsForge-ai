@@ -1,6 +1,6 @@
 import { setState, getState } from './store.js';
 import { createId } from '../utils/id.js';
-import { generateRecommendations, generateCareerPathSteps } from '../features/recommendation-engine.js';
+import { runPathEngine } from '../features/path-engine.js';
 import { computeGoalProgress } from './selectors.js';
 import { isAuthenticated, getCurrentUser } from './auth-state.js';
 import { isSupabaseConfigured } from '../services/auth.js';
@@ -171,23 +171,42 @@ export async function syncGithub({ force = false } = {}) {
   return snapshot;
 }
 
-export async function runRecommendationEngine() {
-  const { skills, sessions, careerGoal, githubSnapshot } = getState();
-  const generated = generateRecommendations(skills, sessions, careerGoal, githubSnapshot);
-  const careerPathSteps = generateCareerPathSteps(generated);
+export async function runPathEngineAction() {
+  const { skills, sessions, careerGoal, githubSnapshot, profile } = getState();
+
+  const result = runPathEngine({
+    careerGoal,
+    skills,
+    sessions,
+    githubSnapshot,
+    weeklyHoursGoal: profile.weeklyHoursGoal ?? 10,
+  });
+
+  const { recommendations, careerPathSteps, weeklyPlan, analysisSteps } = result;
 
   if (useCloud()) {
     const user = getCurrentUser();
-    const recommendations = await data.replaceRecommendationsDb(user.id, generated);
-    setState((s) => ({ ...s, recommendations, careerPathSteps }));
-    return recommendations;
+    const saved = await data.replaceRecommendationsDb(user.id, recommendations);
+    setState((s) => ({
+      ...s,
+      recommendations: saved,
+      careerPathSteps,
+      weeklyPlan,
+      pathAnalysis: analysisSteps,
+    }));
+    return result;
   }
 
   setState((s) => ({
     ...s,
-    recommendations: generated,
+    recommendations,
     careerPathSteps,
+    weeklyPlan,
+    pathAnalysis: analysisSteps,
   }));
 
-  return generated;
+  return result;
 }
+
+/** Alias suderinamumui */
+export const runRecommendationEngine = runPathEngineAction;

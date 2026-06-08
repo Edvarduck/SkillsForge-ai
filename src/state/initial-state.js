@@ -24,5 +24,7 @@ export function getInitialState() {
     careerPathSteps: careerPathSteps.map((s) => ({ ...s })),
     badges: badges.map((b) => ({ ...b })),
     githubSnapshot: null,
+    weeklyPlan: [],
+    pathAnalysis: null,
   };
 }

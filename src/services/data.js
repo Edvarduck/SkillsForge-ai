@@ -189,6 +189,8 @@ export async function fetchUserData(userId, email) {
     careerPathSteps,
     badges,
     githubSnapshot: mapGithubSnapshot(githubRes.data),
+    weeklyPlan: [],
+    pathAnalysis: null,
   };
 }
 
