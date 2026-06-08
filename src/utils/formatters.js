@@ -1,3 +1,11 @@
+export function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('lt-LT', {
     year: 'numeric',

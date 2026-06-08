@@ -1,17 +1,29 @@
 import { renderNavbar, bindNavbar } from './components/navbar.js';
-import { registerRoute, initRouter } from './router/router.js';
+import { registerRoute, initRouter, getCurrentPath } from './router/router.js';
+import { subscribe } from './state/store.js';
 import { renderDashboard } from './views/dashboard.js';
-import { renderSkills } from './views/skills.js';
-import { renderSessions } from './views/sessions.js';
+import { renderSkills, bindSkills } from './views/skills.js';
+import { renderSessions, bindSessions } from './views/sessions.js';
 import {
   renderAnalytics,
   mountAnalyticsCharts,
   unmountAnalyticsCharts,
 } from './views/analytics.js';
-import { renderCareerPath } from './views/career-path.js';
-import { renderProfile } from './views/profile.js';
+import { renderCareerPath, bindCareerPath } from './views/career-path.js';
+import { renderProfile, bindProfile } from './views/profile.js';
 
 const appRoot = document.getElementById('app');
+
+let currentPath = '/dashboard';
+let currentHandler = null;
+
+const binders = {
+  '/skills': bindSkills,
+  '/sessions': bindSessions,
+  '/analytics': mountAnalyticsCharts,
+  '/career-path': bindCareerPath,
+  '/profile': bindProfile,
+};
 
 function renderShell(content) {
   appRoot.innerHTML = `
@@ -23,6 +35,25 @@ function renderShell(content) {
     </div>
   `;
   bindNavbar(appRoot);
+}
+
+function bindCurrentView(path) {
+  const main = document.getElementById('main-content');
+  if (!main) return;
+
+  const binder = binders[path];
+  if (binder) binder(main);
+}
+
+function renderCurrentView() {
+  if (!currentHandler) return;
+
+  if (currentPath !== '/analytics') {
+    unmountAnalyticsCharts();
+  }
+
+  renderShell(currentHandler());
+  bindCurrentView(currentPath);
 }
 
 function setupRoutes() {
@@ -38,15 +69,18 @@ export function initApp() {
   setupRoutes();
 
   initRouter((path, handler) => {
-    unmountAnalyticsCharts();
+    currentPath = path;
+    currentHandler = handler;
+    renderCurrentView();
+  });
 
-    if (handler) {
-      renderShell(handler());
-    }
+  subscribe(() => {
+    renderCurrentView();
+  });
 
-    if (path === '/analytics') {
-      const main = document.getElementById('main-content');
-      if (main) mountAnalyticsCharts(main);
+  window.addEventListener('skillforge:rerender', () => {
+    if (getCurrentPath() === currentPath) {
+      renderCurrentView();
     }
   });
 }

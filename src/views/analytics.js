@@ -1,19 +1,25 @@
+import { getState } from '../state/store.js';
 import {
-  weeklyHoursByWeek,
-  categoryDistribution,
-  skillProgress,
-} from '../data/mock-data.js';
+  getWeeklyHoursChartData,
+  getCategoryDistribution,
+  getSkillProgressChartData,
+} from '../state/selectors.js';
 import { renderLineChart, destroyLineChart } from '../components/charts/line-chart.js';
 import { renderDoughnutChart, destroyDoughnutChart } from '../components/charts/doughnut-chart.js';
 import { renderProgressBarChart, destroyProgressBarChart } from '../components/charts/progress-bar-chart.js';
 
 export function renderAnalytics() {
+  const { sessions } = getState();
+  const hasData = sessions.length > 0;
+
   return `
     <section class="view">
       <div class="view-header">
         <h2>Analitika</h2>
-        <p class="text-muted">3 pagrindiniai grafikai – mokymosi progreso vizualizacija</p>
+        <p class="text-muted">3 pagrindiniai grafikai – duomenys iš tavo sesijų</p>
       </div>
+
+      ${!hasData ? '<div class="card"><p class="text-muted">Pridėk sesijų, kad grafikai turėtų duomenų.</p></div>' : ''}
 
       <div class="charts-grid">
         <div class="card chart-card">
@@ -26,7 +32,7 @@ export function renderAnalytics() {
 
         <div class="card chart-card">
           <h3>Laiko pasiskirstymas</h3>
-          <p class="text-muted">Proporcijos pagal kategoriją (%)</p>
+          <p class="text-muted">Proporcijos pagal kategoriją (min)</p>
           <div class="chart-container">
             <canvas id="chart-categories"></canvas>
           </div>
@@ -49,9 +55,17 @@ export function mountAnalyticsCharts(root) {
   const categoryCanvas = root.querySelector('#chart-categories');
   const progressCanvas = root.querySelector('#chart-skill-progress');
 
-  if (weeklyCanvas) renderLineChart(weeklyCanvas, weeklyHoursByWeek);
-  if (categoryCanvas) renderDoughnutChart(categoryCanvas, categoryDistribution);
-  if (progressCanvas) renderProgressBarChart(progressCanvas, skillProgress);
+  const weeklyData = getWeeklyHoursChartData();
+  const categoryData = getCategoryDistribution();
+  const progressData = getSkillProgressChartData();
+
+  if (weeklyCanvas) renderLineChart(weeklyCanvas, weeklyData);
+  if (categoryCanvas && !categoryData.empty) {
+    renderDoughnutChart(categoryCanvas, categoryData);
+  }
+  if (progressCanvas && progressData.labels.length) {
+    renderProgressBarChart(progressCanvas, progressData);
+  }
 }
 
 export function unmountAnalyticsCharts() {

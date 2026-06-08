@@ -1,46 +1,54 @@
-import { careerGoal, careerPathSteps, recommendations } from '../data/mock-data.js';
-import { formatDate } from '../utils/formatters.js';
+import { getState } from '../state/store.js';
+import { runRecommendationEngine } from '../state/actions.js';
+import { formatDate, escapeHtml } from '../utils/formatters.js';
+import { showToast } from '../components/toast.js';
 
 export function renderCareerPath() {
+  const { careerGoal, careerPathSteps, recommendations } = getState();
+
   const milestones = careerGoal.milestones
     .map(
       (m) => `
         <li class="milestone ${m.isCompleted ? 'milestone--done' : ''}">
           <span class="milestone__check">${m.isCompleted ? '✓' : '○'}</span>
-          <span>${m.title}</span>
+          <span>${escapeHtml(m.title)}</span>
         </li>
       `
     )
     .join('');
 
-  const pathSteps = careerPathSteps
-    .map(
-      (step) => `
+  const pathSteps = careerPathSteps.length
+    ? careerPathSteps
+        .map(
+          (step) => `
         <div class="path-step path-step--${step.status}">
           <div class="path-step__order">${step.order}</div>
           <div class="path-step__content">
-            <h4>${step.skill}</h4>
-            <p class="text-muted">${step.reason}</p>
+            <h4>${escapeHtml(step.skill)}</h4>
+            <p class="text-muted">${escapeHtml(step.reason)}</p>
             <span class="badge">~${step.hours} val.</span>
           </div>
         </div>
       `
-    )
-    .join('');
+        )
+        .join('')
+    : '<p class="text-muted">Paspausk „Sugeneruoti rekomendacijas“, kad sukurtum kelią.</p>';
 
-  const recList = recommendations
-    .map(
-      (r) => `
+  const recList = recommendations.length
+    ? recommendations
+        .map(
+          (r) => `
         <li class="list-item">
           <div>
-            <strong>${r.skillName}</strong>
-            <span class="text-muted">${r.reason}</span>
+            <strong>${escapeHtml(r.skillName)}</strong>
+            <span class="text-muted">${escapeHtml(r.reason)}</span>
           </div>
           <span class="badge">Score: ${r.score}</span>
         </li>
       `
-    )
-    .join('');
+        )
+        .join('')
+    : '<li class="text-muted empty-msg">Rekomendacijų dar nėra. Sugeneruok pagal savo duomenis.</li>';
 
   return `
     <section class="view">
@@ -52,10 +60,10 @@ export function renderCareerPath() {
       <div class="card card--highlight">
         <div class="goal-header">
           <div>
-            <h3>${careerGoal.title}</h3>
+            <h3>${escapeHtml(careerGoal.title)}</h3>
             <p class="text-muted">Tikslas: ${formatDate(careerGoal.targetDate)} · ${careerGoal.progressPercent}%</p>
           </div>
-          <button class="btn btn--primary" disabled>Sugeneruoti kelią (netrukus)</button>
+          <button type="button" class="btn btn--primary" id="generate-recommendations">Sugeneruoti rekomendacijas</button>
         </div>
         <div class="progress-bar progress-bar--lg">
           <div class="progress-bar__fill" style="width: ${careerGoal.progressPercent}%"></div>
@@ -79,4 +87,15 @@ export function renderCareerPath() {
       </div>
     </section>
   `;
+}
+
+export function bindCareerPath(root) {
+  root.querySelector('#generate-recommendations')?.addEventListener('click', () => {
+    const recs = runRecommendationEngine();
+    if (recs.length) {
+      showToast(`Sugeneruota ${recs.length} rekomendacijos`);
+    } else {
+      showToast('Nepakanka duomenų – pridėk įgūdžių ir sesijų', 'error');
+    }
+  });
 }
