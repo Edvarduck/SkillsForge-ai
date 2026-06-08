@@ -3,6 +3,7 @@ import { getSkillsWithSessionCounts } from '../state/selectors.js';
 import { addSkill, updateSkill, deleteSkill } from '../state/actions.js';
 import { levelDots, escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../components/toast.js';
+import { renderEmptyState } from '../components/ui-states.js';
 
 const CATEGORIES = ['Programavimas', 'Dizainas', 'Įrankiai'];
 const STATUSES = [
@@ -28,13 +29,28 @@ function statusLabel(status) {
 }
 
 export function renderSkills() {
+  const allSkills = getSkillsWithSessionCounts();
   const skills = getFilteredSkills();
   const editingSkill = editingId ? getState().skills.find((s) => s.id === editingId) : null;
 
-  const skillCards = skills.length
-    ? skills
-        .map(
-          (skill) => `
+  let skillCards;
+
+  if (!allSkills.length) {
+    skillCards = renderEmptyState({
+      icon: '🧠',
+      title: 'Įgūdžių dar nėra',
+      description: 'Pridėk pirmą įgūdį naudodamas formą viršuje.',
+    });
+  } else if (!skills.length) {
+    skillCards = renderEmptyState({
+      icon: '🔍',
+      title: 'Pagal filtrą nieko nerasta',
+      description: 'Pakeisk kategoriją arba statusą, kad pamatytum įgūdžius.',
+    });
+  } else {
+    skillCards = skills
+      .map(
+        (skill) => `
         <article class="skill-card" data-skill-id="${skill.id}">
           <div class="skill-card__header">
             <h3>${escapeHtml(skill.name)}</h3>
@@ -51,9 +67,9 @@ export function renderSkills() {
           </div>
         </article>
       `
-        )
-        .join('')
-    : '<p class="text-muted empty-msg">Įgūdžių pagal filtrą nerasta.</p>';
+      )
+      .join('');
+  }
 
   const categoryOptions = CATEGORIES.map(
     (c) => `<option value="${c}" ${editingSkill?.category === c ? 'selected' : ''}>${c}</option>`

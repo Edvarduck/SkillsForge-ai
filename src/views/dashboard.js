@@ -2,6 +2,7 @@ import { getState } from '../state/store.js';
 import { getDashboardSummary } from '../state/selectors.js';
 import { formatDate, formatMinutes, escapeHtml } from '../utils/formatters.js';
 import { renderGithubDashboardSummary } from '../utils/github-helpers.js';
+import { renderEmptyState } from '../components/ui-states.js';
 
 export function renderDashboard() {
   const { sessions, recommendations, careerGoal, profile, githubSnapshot } = getState();
@@ -15,8 +16,8 @@ export function renderDashboard() {
   const goalProgress = careerGoal.progressPercent;
   const weeklyPercent = Math.min(100, (summary.weeklyHours / summary.weeklyGoal) * 100);
 
-  const sessionItems = recentSessions.length
-    ? recentSessions
+  const sessionsBlock = recentSessions.length
+    ? `<ul class="list">${recentSessions
         .map(
           (s) => `
         <li class="list-item">
@@ -28,11 +29,17 @@ export function renderDashboard() {
         </li>
       `
         )
-        .join('')
-    : '<li class="text-muted">Sesijų dar nėra.</li>';
+        .join('')}</ul>`
+    : renderEmptyState({
+        icon: '📅',
+        title: 'Sesijų dar nėra',
+        description: 'Užregistruok pirmą mokymosi sesiją ir stebėk progresą.',
+        ctaLabel: 'Pridėti sesiją',
+        ctaHref: '#/sessions',
+      });
 
-  const recItems = topRecommendations.length
-    ? topRecommendations
+  const recommendationsBlock = topRecommendations.length
+    ? `<ul class="list">${topRecommendations
         .map(
           (r) => `
         <li class="list-item">
@@ -44,8 +51,14 @@ export function renderDashboard() {
         </li>
       `
         )
-        .join('')
-    : '<li class="text-muted">Eik į Karjeros kelią ir sugeneruok rekomendacijas.</li>';
+        .join('')}</ul>`
+    : renderEmptyState({
+        icon: '🧭',
+        title: 'Rekomendacijų dar nėra',
+        description: 'Paleisk Karjeros Kelio Variklį ir gauk personalizuotą planą.',
+        ctaLabel: 'Karjeros kelias',
+        ctaHref: '#/career-path',
+      });
 
   return `
     <section class="view">
@@ -93,11 +106,11 @@ export function renderDashboard() {
       <div class="grid-2">
         <div class="card">
           <h3>Paskutinės sesijos</h3>
-          <ul class="list">${sessionItems}</ul>
+          ${sessionsBlock}
         </div>
         <div class="card">
           <h3>Rekomendacijos</h3>
-          <ul class="list">${recItems}</ul>
+          ${recommendationsBlock}
         </div>
       </div>
     </section>

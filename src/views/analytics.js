@@ -7,6 +7,7 @@ import {
 import { renderLineChart, destroyLineChart } from '../components/charts/line-chart.js';
 import { renderDoughnutChart, destroyDoughnutChart } from '../components/charts/doughnut-chart.js';
 import { renderProgressBarChart, destroyProgressBarChart } from '../components/charts/progress-bar-chart.js';
+import { renderEmptyState } from '../components/ui-states.js';
 
 export function renderAnalytics() {
   const { sessions } = getState();
@@ -19,7 +20,17 @@ export function renderAnalytics() {
         <p class="text-muted">3 pagrindiniai grafikai – duomenys iš tavo sesijų</p>
       </div>
 
-      ${!hasData ? '<div class="card"><p class="text-muted">Pridėk sesijų, kad grafikai turėtų duomenų.</p></div>' : ''}
+      ${
+        !hasData
+          ? `<div class="card">${renderEmptyState({
+              icon: '📊',
+              title: 'Grafikams trūksta duomenų',
+              description: 'Užregistruok mokymosi sesijas – tada čia matysi 3 interaktyvius grafikus.',
+              ctaLabel: 'Pridėti sesiją',
+              ctaHref: '#/sessions',
+            })}</div>`
+          : ''
+      }
 
       <div class="charts-grid">
         <div class="card chart-card">

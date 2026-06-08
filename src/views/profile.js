@@ -5,6 +5,8 @@ import { formatDate, escapeHtml } from '../utils/formatters.js';
 import { renderGithubSnapshotCard } from '../utils/github-helpers.js';
 import { showToast } from '../components/toast.js';
 
+let githubSyncError = null;
+
 export function renderProfile() {
   const { profile, careerGoal, badges, githubSnapshot } = getState();
 
@@ -90,6 +92,14 @@ export function renderProfile() {
           <button type="submit" class="btn btn--secondary">Išsaugoti vardą</button>
           <button type="button" class="btn btn--primary" id="github-sync-btn">Sinchronizuoti</button>
         </form>
+        ${
+          githubSyncError
+            ? `<div class="error-banner">
+                <span class="error-banner__text">${escapeHtml(githubSyncError)}</span>
+                <button type="button" class="btn btn--small btn--secondary" id="github-retry-btn">Bandyti dar kartą</button>
+              </div>`
+            : ''
+        }
         <div class="github-snapshot" id="github-snapshot">
           ${githubCard}
         </div>
@@ -155,7 +165,7 @@ export function bindProfile(root) {
     }
   });
 
-  root.querySelector('#github-sync-btn')?.addEventListener('click', async () => {
+  async function syncGithubProfile() {
     const btn = root.querySelector('#github-sync-btn');
     const username = root.querySelector('#github-username').value.trim();
 
@@ -166,16 +176,22 @@ export function bindProfile(root) {
 
     btn.disabled = true;
     btn.textContent = 'Sinchronizuojama...';
+    githubSyncError = null;
 
     try {
       await updateProfile({ githubUsername: username });
       await syncGithub({ force: true });
       showToast('GitHub duomenys sinchronizuoti');
     } catch (err) {
-      showToast(err.message || 'GitHub sinchronizacijos klaida', 'error');
+      githubSyncError = err.message || 'GitHub sinchronizacijos klaida';
+      showToast(githubSyncError, 'error');
+      window.dispatchEvent(new CustomEvent('skillforge:rerender'));
     } finally {
       btn.disabled = false;
       btn.textContent = 'Sinchronizuoti';
     }
-  });
+  }
+
+  root.querySelector('#github-sync-btn')?.addEventListener('click', syncGithubProfile);
+  root.querySelector('#github-retry-btn')?.addEventListener('click', syncGithubProfile);
 }

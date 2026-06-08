@@ -6,6 +6,7 @@ import { getInitialState } from './initial-state.js';
 let currentUser = null;
 let authReady = false;
 let dataLoading = false;
+let dataLoadError = null;
 
 export function getCurrentUser() {
   return currentUser;
@@ -23,12 +24,25 @@ export function isDataLoading() {
   return dataLoading;
 }
 
+export function getDataLoadError() {
+  return dataLoadError;
+}
+
+export async function retryDataLoad() {
+  if (!currentUser) return false;
+
+  dataLoadError = null;
+  await loadUserData(currentUser);
+  return !dataLoadError;
+}
+
 export function requiresAuth() {
   return isSupabaseConfigured;
 }
 
 async function loadUserData(user) {
   dataLoading = true;
+  dataLoadError = null;
   window.dispatchEvent(new CustomEvent('skillforge:auth-change'));
 
   try {
@@ -36,10 +50,10 @@ async function loadUserData(user) {
     setPersistenceMode(false);
     replaceState(appData);
     const { checkAndAwardBadges } = await import('./badge-actions.js');
-    await checkAndAwardBadges();
+    await checkAndAwardBadges({ silent: true });
   } catch (err) {
     console.error('Nepavyko įkelti duomenų:', err);
-    throw err;
+    dataLoadError = err.message || 'Nepavyko įkelti duomenų iš serverio';
   } finally {
     dataLoading = false;
     window.dispatchEvent(new CustomEvent('skillforge:auth-change'));

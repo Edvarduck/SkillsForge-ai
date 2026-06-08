@@ -46,11 +46,10 @@
 - [x] GitHub API sinchronizacija + `github_snapshots`
 - [x] **Karūnos Brangakmenis** – `path-engine.js` (5 žingsnių algoritmas + savaitės planas)
 - [x] Vercel deploy
+- [x] Badges automatinis skyrimas (`user_badges`)
+- [x] UX polish (skeleton loaders, empty states, retry klaidoms)
 
 ### Dar nebaigta
-
-- [ ] Badges automatinis skyrimas (`user_badges`)
-- [ ] Pilnas UX polish (skeleton loaders, empty states, retry visur)
 - [ ] Milestone'ų redagavimas UI (tik rodomi, ne redaguojami)
 - [ ] `weeklyPlan` / `pathAnalysis` persist į DB (dabar tik aplikacijos state)
 - [ ] Naujausios versijos auto-deploy per GitHub → Vercel (reikia patikrinti ar sujungta)
@@ -211,9 +210,8 @@ Projekte nėra `.cursor/rules/` failų – galioja vartotojo Cursor taisyklės:
 
 ## 9. Artimiausi žingsniai (pagal planą)
 
-1. **Etapas 7 – Badges:** automatinis skyrimas (`first-session`, `ten-hours`, `week-champion` ir t.t.) → `user_badges`
-2. **Etapas 8 – UX polish:** skeleton loaders, empty states, retry klaidoms
-3. **Redeploy** į Vercel su naujausiais pakeitimais (path engine) – jei production dar senesnė versija
+1. **Redeploy** į Vercel su naujausiais pakeitimais (badges + UX polish)
+2. **GitHub → Vercel auto-deploy** – patikrinti / sutvarkyti
 4. **Git:** commit'inti nepush'intus deploy / path engine failus (jei reikia – reikia patikrinti `git status`)
 5. **Supabase production Auth URL** – įsitikinti kad `https://skillsforge-ai.vercel.app` nustatytas Site URL
 

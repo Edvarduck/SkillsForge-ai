@@ -2,11 +2,12 @@ import { getState } from '../state/store.js';
 import { addSession, deleteSession } from '../state/actions.js';
 import { formatDate, formatMinutes, escapeHtml } from '../utils/formatters.js';
 import { toInputDate } from '../utils/date-helpers.js';
+import { showToast } from '../components/toast.js';
+import { renderEmptyState } from '../components/ui-states.js';
 
 function todayInputDate() {
   return toInputDate();
 }
-import { showToast } from '../components/toast.js';
 
 export function renderSessions() {
   const { skills, sessions } = getState();
@@ -31,7 +32,15 @@ export function renderSessions() {
       `
         )
         .join('')
-    : `<tr><td colspan="5" class="text-muted">Sesijų dar nėra. Pridėk pirmą!</td></tr>`;
+    : `<tr><td colspan="5">${renderEmptyState({
+        icon: '📓',
+        title: 'Sesijų istorija tuščia',
+        description: skills.length
+          ? 'Užpildyk formą viršuje ir išsaugok pirmą sesiją.'
+          : 'Pirmiausia pridėk bent vieną įgūdį skiltyje Įgūdžiai.',
+        ctaLabel: skills.length ? undefined : 'Įgūdžiai',
+        ctaHref: skills.length ? undefined : '#/skills',
+      })}</td></tr>`;
 
   return `
     <section class="view">

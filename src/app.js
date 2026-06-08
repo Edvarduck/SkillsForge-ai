@@ -5,8 +5,11 @@ import {
   isAuthReady,
   isAuthenticated,
   isDataLoading,
+  getDataLoadError,
+  retryDataLoad,
   requiresAuth,
 } from './state/auth-state.js';
+import { renderAppSkeleton, renderErrorState } from './components/ui-states.js';
 import { renderDashboard } from './views/dashboard.js';
 import { renderSkills, bindSkills } from './views/skills.js';
 import { renderSessions, bindSessions } from './views/sessions.js';
@@ -34,12 +37,42 @@ const binders = {
 };
 
 function renderLoading() {
-  appRoot.innerHTML = `
-    <div class="app-loading">
-      <div class="spinner"></div>
-      <p>Kraunama...</p>
-    </div>
-  `;
+  if (!isAuthReady()) {
+    appRoot.innerHTML = `
+      <div class="app-loading">
+        <div class="spinner"></div>
+        <p>Kraunama...</p>
+      </div>
+    `;
+    return;
+  }
+
+  renderShell(renderAppSkeleton(), true);
+}
+
+function bindDataErrorRetry() {
+  const btn = document.getElementById('retry-load');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Kraunama...';
+    await retryDataLoad();
+    btn.disabled = false;
+    btn.textContent = 'Bandyti dar kartą';
+  });
+}
+
+function renderDataError() {
+  renderShell(
+    renderErrorState({
+      title: 'Nepavyko įkelti duomenų',
+      message: getDataLoadError() || 'Patikrink interneto ryšį ir bandyk dar kartą.',
+      retryId: 'retry-load',
+    }),
+    true
+  );
+  bindDataErrorRetry();
 }
 
 function renderShell(content, showNav = true) {
@@ -69,6 +102,11 @@ function renderCurrentView() {
 
   if (isDataLoading()) {
     renderLoading();
+    return;
+  }
+
+  if (getDataLoadError() && isAuthenticated()) {
+    renderDataError();
     return;
   }
 

@@ -1,5 +1,5 @@
-import { formatDate } from './formatters.js';
-import { escapeHtml } from './formatters.js';
+import { formatDate, escapeHtml } from './formatters.js';
+import { renderEmptyState } from '../components/ui-states.js';
 
 export function formatGithubLanguages(languages = {}) {
   const entries = Object.entries(languages).sort((a, b) => b[1] - a[1]);
@@ -13,13 +13,13 @@ export function formatGithubLanguages(languages = {}) {
 
 export function renderGithubSnapshotCard(snapshot, username) {
   if (!snapshot) {
-    return `
-      <p class="text-muted">
-        ${username
-          ? `Paspausk „Sinchronizuoti“, kad įkeltum @${escapeHtml(username)} duomenis.`
-          : 'Įvesk GitHub vartotojo vardą ir sinchronizuok.'}
-      </p>
-    `;
+    return renderEmptyState({
+      icon: '🐙',
+      title: username ? 'GitHub duomenų dar nėra' : 'GitHub neprijungtas',
+      description: username
+        ? `Paspausk „Sinchronizuoti“, kad įkeltum @${escapeHtml(username)} viešų repozitorijų duomenis.`
+        : 'Įvesk GitHub vartotojo vardą ir sinchronizuok profilį.',
+    });
   }
 
   const languages = formatGithubLanguages(snapshot.languages);

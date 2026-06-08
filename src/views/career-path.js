@@ -3,10 +3,17 @@ import { runPathEngineAction } from '../state/actions.js';
 import { formatDate, escapeHtml } from '../utils/formatters.js';
 import { formatGithubLanguages, renderGithubSnapshotCard } from '../utils/github-helpers.js';
 import { showToast } from '../components/toast.js';
+import { renderEmptyState } from '../components/ui-states.js';
+
+let pathEngineError = null;
 
 function renderPathSteps(steps) {
   if (!steps.length) {
-    return '<p class="text-muted">Paspausk „Sugeneruoti kelią“, kad paleistum Karjeros Kelio Variklį.</p>';
+    return renderEmptyState({
+      icon: '🛤️',
+      title: 'Kelias dar nesugeneruotas',
+      description: 'Paspausk „Sugeneruoti kelią“ – variklis parinks prioritetus ir savaitės planą.',
+    });
   }
 
   return steps
@@ -33,7 +40,11 @@ function renderPathSteps(steps) {
 
 function renderWeeklyPlan(plan) {
   if (!plan.length) {
-    return '<p class="text-muted">Savaitės planas sugeneruojamas kartu su keliu.</p>';
+    return renderEmptyState({
+      icon: '📆',
+      title: 'Savaitės plano dar nėra',
+      description: 'Jis sugeneruojamas kartu su karjeros keliu.',
+    });
   }
 
   return `
@@ -114,7 +125,15 @@ export function renderCareerPath() {
       `
         )
         .join('')
-    : '<li class="text-muted empty-msg">Rekomendacijų dar nėra.</li>';
+    : '';
+
+  const recommendationsBlock = recommendations.length
+    ? `<ul class="list">${recList}</ul>`
+    : renderEmptyState({
+        icon: '💡',
+        title: 'Rekomendacijų dar nėra',
+        description: 'Sugeneruok kelią – variklis pasiūlys, kuriuos įgūdžius tobulinti pirmiausia.',
+      });
 
   return `
     <section class="view">
@@ -137,6 +156,14 @@ export function renderCareerPath() {
         <p class="text-muted path-engine-hint">
           Gap analysis → Momentum → GitHub alignment → Priority ranking → Weekly plan
         </p>
+        ${
+          pathEngineError
+            ? `<div class="error-banner">
+                <span class="error-banner__text">${escapeHtml(pathEngineError)}</span>
+                <button type="button" class="btn btn--small btn--secondary" id="retry-path-engine">Bandyti dar kartą</button>
+              </div>`
+            : ''
+        }
       </div>
 
       ${renderAnalysisSteps(pathAnalysis)}
@@ -170,7 +197,7 @@ export function renderCareerPath() {
 
       <div class="card">
         <h3>Išmanios rekomendacijos</h3>
-        <ul class="list">${recList}</ul>
+        ${recommendationsBlock}
       </div>
     </section>
   `;
@@ -184,29 +211,37 @@ const ENGINE_STEPS = [
   'Weekly plan...',
 ];
 
-export function bindCareerPath(root) {
-  root.querySelector('#generate-path')?.addEventListener('click', async () => {
-    const btn = root.querySelector('#generate-path');
-    btn.disabled = true;
+async function runPathGeneration(btn) {
+  btn.disabled = true;
+  pathEngineError = null;
 
-    try {
-      for (let i = 0; i < ENGINE_STEPS.length; i++) {
-        btn.textContent = `${i + 1}/5 ${ENGINE_STEPS[i]}`;
-        await new Promise((r) => setTimeout(r, 280));
-      }
-
-      const result = await runPathEngineAction();
-
-      if (result.recommendations.length) {
-        showToast(`Kelias sugeneruotas – ${result.recommendations.length} rekomendacijos`);
-      } else {
-        showToast('Nepakanka duomenų – pridėk tikslą ir įgūdžius', 'error');
-      }
-    } catch (err) {
-      showToast(err.message || 'Nepavyko sugeneruoti kelio', 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Sugeneruoti kelią';
+  try {
+    for (let i = 0; i < ENGINE_STEPS.length; i++) {
+      btn.textContent = `${i + 1}/5 ${ENGINE_STEPS[i]}`;
+      await new Promise((r) => setTimeout(r, 280));
     }
+
+    const result = await runPathEngineAction();
+
+    if (result.recommendations.length) {
+      showToast(`Kelias sugeneruotas – ${result.recommendations.length} rekomendacijos`);
+    } else {
+      showToast('Nepakanka duomenų – pridėk tikslą ir įgūdžius', 'error');
+    }
+  } catch (err) {
+    pathEngineError = err.message || 'Nepavyko sugeneruoti kelio';
+    showToast(pathEngineError, 'error');
+    window.dispatchEvent(new CustomEvent('skillforge:rerender'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sugeneruoti kelią';
+  }
+}
+
+export function bindCareerPath(root) {
+  const generateBtn = root.querySelector('#generate-path');
+  generateBtn?.addEventListener('click', () => runPathGeneration(generateBtn));
+  root.querySelector('#retry-path-engine')?.addEventListener('click', () => {
+    if (generateBtn) runPathGeneration(generateBtn);
   });
 }
