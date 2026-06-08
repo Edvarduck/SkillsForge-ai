@@ -52,7 +52,7 @@
 ### Dar nebaigta
 - [x] Milestone'ų redagavimas UI (pridėti, redaguoti, pažymėti, ištrinti)
 - [x] `weeklyPlan` / `pathAnalysis` persist į DB (`path_engine_cache` – reikia `003_path_cache.sql`)
-- [ ] Naujausios versijos auto-deploy per GitHub → Vercel (reikia patikrinti ar sujungta)
+- [x] Auto-deploy workflow (`.github/workflows/vercel-deploy.yml` – reikia GitHub Secrets)
 
 **Pastaba:** [`ARCHITECTURE_PLAN.md`](ARCHITECTURE_PLAN.md) progreso checklist dalinai pasenęs – šis failas tikslesnis.
 
