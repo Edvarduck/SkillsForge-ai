@@ -9,7 +9,8 @@
 - [ ] Etapas 3: Skills, sessions, goals CRUD – visas state į DB
 - [ ] Etapas 4–5: Realūs grafikai iš DB + GitHub API integracija
 - [ ] Etapas 6: Karjeros Kelio Variklis (path-engine.js) + recommendations
-- [ ] Etapas 7–9: Badges, loading/errors polish, Vercel deploy
+- [x] Etapas 9: Vercel deploy (https://skillsforge-ai.vercel.app)
+- [ ] Etapas 7–8: Badges, loading/errors polish
 
 ---
 
