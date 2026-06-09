@@ -68,7 +68,7 @@ export function renderSessions() {
           </div>
           <div class="form-group">
             <label for="session-notes">Pastabos</label>
-            <textarea id="session-notes" rows="2" placeholder="Ką mokėjaisi?"></textarea>
+            <textarea id="session-notes" rows="2" placeholder="Ką mokeisi?"></textarea>
           </div>
           <button type="submit" class="btn btn--primary" ${skills.length ? '' : 'disabled'}>Išsaugoti</button>
         </form>
