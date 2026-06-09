@@ -1,5 +1,5 @@
 import { getState } from './store.js';
-import { getWeekStart, isSameWeek, getWeekLabel } from '../utils/date-helpers.js';
+import { getWeekStart, isSameWeek, getWeekLabel, toLocalDateStr } from '../utils/date-helpers.js';
 
 export function computeGoalProgress(milestones) {
   if (!milestones.length) return 0;
@@ -86,30 +86,22 @@ export function getDashboardSummary() {
 function computeStreak(sessionList) {
   if (!sessionList.length) return 0;
 
-  const dates = [...new Set(sessionList.map((s) => s.sessionDate))].sort().reverse();
-  let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const sessionDates = new Set(sessionList.map((s) => s.sessionDate));
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
 
-  for (let i = 0; i < dates.length; i++) {
-    const expected = new Date(today);
-    expected.setDate(expected.getDate() - i);
-    const expectedStr = expected.toISOString().slice(0, 10);
-
-    if (dates.includes(expectedStr)) {
-      streak++;
-    } else if (i === 0 && dates.includes(dates[0])) {
-      const first = new Date(dates[0]);
-      const diff = Math.floor((today - first) / 86400000);
-      if (diff <= 1) {
-        streak++;
-        today.setDate(today.getDate() - 1);
-      } else {
-        break;
-      }
-    } else {
-      break;
+  // Jei šiandien nėra sesijos – streak skaičiuojamas nuo vakar
+  if (!sessionDates.has(toLocalDateStr(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!sessionDates.has(toLocalDateStr(cursor))) {
+      return 0;
     }
+  }
+
+  let streak = 0;
+  while (sessionDates.has(toLocalDateStr(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
   }
 
   return streak;
